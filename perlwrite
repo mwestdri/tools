@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+#my $date = `date +%Y-%m-%d`;
+my $cmd = "date +%d%b%Y";
+my $date = `$cmd`;
+chomp $date;
+print "date is \"$date\"\n";
+
+my $outfile = "p$date";
+print "outfile is \"$outfile\"\n";
+open OUTPUT, ">>$outfile" or die $!;
+my $human_date = `date`;
+print OUTPUT "$human_date\n";
+close OUTPUT;

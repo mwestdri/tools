@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+
+#TODO: also print the manpage entry?
+# or maybe some getopts with man entry versus the format test
+while(<>)
+{
+   print "Select a format to test:";
+   my $line = $_;
+   chomp $line;
+   my $cmd = "date +%$line";
+   my $date = `$cmd`;
+   chomp $date;
+   print "date is \"$date\"\n";
+}
+print "Done.\n";
+#b -> Jun
+#%b%d
