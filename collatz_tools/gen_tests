@@ -1,0 +1,37 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+my $outfile = "acceptance_tests";
+open OUTPUT, ">$outfile" or die $!;
+my $c = 97;
+print OUTPUT "1 1\n";
+print OUTPUT "1 2\n";
+print OUTPUT "1 5\n";
+while ($c) {
+   my $a = 0;
+   my $b = 0;
+   if( $c > 70) {
+      $a = int(rand(500));
+      $b = int(rand(500));
+   }
+   elsif( $c > 50) {
+      $a = int(rand(5000));
+      $b = int(rand(5000));
+   }
+   elsif( $c > 25) {
+      $a = int(rand(500000));
+      $b = int(rand(500000));
+   }
+   elsif( $c > 10) {
+      $a = int(rand(5000000));
+      $b = int(rand(5000000));
+   }
+   elsif( $c > 5) {
+      $a = int(rand(50000000));
+      $b = int(rand(50000000));
+   }
+   print OUTPUT "$a $b\n";
+   $c--;
+}

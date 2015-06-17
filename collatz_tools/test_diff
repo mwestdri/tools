@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+my $testdir = "my_outputs/";
+#diff 
+#ics245-RunCollatz.out
+#ncp299-RunCollatz.out
+#rjt549-RunCollatz.out
+my @dirdiff = `./dirdiff $testdir ../collatz-tests`;
+my @diff_files = ();
+foreach my $line(@dirdiff) {
+   chomp $line;
+   my $filename = "";
+   if ($line =~ /\*/) {
+      $line =~ s/^\s*//;
+      if ($line =~ /(\S+)/){
+         $filename = $1; 
+#         print "line is \"$line\"\n";
+#         print "adding filename \"$filename\" to diffs\n";
+         push (@diff_files, $filename);
+      }
+      else {
+         die "line is \"$line\"\n";
+      }
+   }
+}
+
+foreach my $file(@diff_files) {
+   chomp $file;
+   #my $cmd = "diff -U 0 $testdir/$file ../collatz-tests/$file";
+   my $cmd = "vimdiff $testdir/$file ../collatz-tests/$file";
+#   my @output = `$cmd`;
+#   foreach my $line(@output){
+#      print $line
+#   }
+   print "$cmd\n";
+   system ($cmd);
+}
