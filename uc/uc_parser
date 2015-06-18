@@ -1,0 +1,108 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+use Data::Dumper qw(Dumper);
+
+my %dances =
+(
+   "2ST"=>'1',
+   "WCS"=>'1',
+   "CHA"=>'1',
+   "WTZ"=>'1',
+   "ECS"=>'1',
+   "NC2"=>'1',
+   "PLK"=>'1',
+   "TR2"=>'1',
+);
+
+# Song.create!(name: "Super Sad Song Title", artist: "Tracy Atkins", bpm: 95, dance: "nc", cpl_length: 2.14, proam_length: 1.7, cpl_phrasing: [2, 2, 3, 4, 5], proam_phrasing: [2, 2, 3, 4, 5])
+
+print "starting the thing\n";
+my $date = `date +%s`;
+chomp $date;
+my $outfile = "uc_$date";
+print "outfile is \"$outfile\"\n";
+open FILE, "<new_uc" or die $!;
+open OUTPUT, ">$outfile" or die $!;
+my @lines = <FILE>;
+my $line_no = 1;
+
+my %types = 
+(
+   '1'=>'dance',
+   '2'=>'bpm',
+   '3'=>'name',
+   '4'=>'artist',
+   '5'=>'phrasing',
+   '6'=>'length',
+   '0'=>'year',
+);
+my $song_idx = 1;
+
+my $name = "";
+my $artist = "";
+my $bpm = "";
+my $dance = "";
+my $cpl_length = "";
+my $proam_length = "";
+my $year = 0;
+my $proam_phrasing = "";
+my $cpl_phrasing = "";
+
+my %songs = ();
+# hashes temporarily storing the values being read
+my %curr_song = (); 
+my %prev_song = ();
+
+
+##############################################################
+####  Subroutines
+##############################################################
+
+sub deep_copy( $ ) 
+{
+   
+}
+
+
+foreach my $line (@lines)
+{
+   chomp $line;
+   my $idx = $line_no % 7;
+   my $type = $types{$idx};
+   #print "type is \"$type\"\n";
+   if ($type =~ /phrasing/ )
+   {
+      if( $line =~ /^Couples (.*)$/ )
+      {
+         $cpl_phrasing = $1;
+         $curr_song{'cpl_phrasing'} = $cpl_phrasing;
+      }
+      elsif( $line =~ /^ProAm (.*)$/ )
+      {
+         $proam_phrasing = $1;
+         $curr_song{'proam_phrasing'} = $proam_phrasing;
+      }
+      else
+      {
+         die "$line_no: WHAT DATA TYPE IS THIS???\"$line\"\n";
+      }
+   }
+   else
+   {
+      $curr_song{$type} = $line;
+
+      if( $type =~ /year/ ) # end of song info
+      {
+         my $name = $curr_song('name'); # name is the key
+         $songs{$name} = \%curr_song
+         #TODO: if curr_song title = prev_song title:
+            # merge their phrasings
+      }
+   }
+   $line_no++;
+}
+
+print Dumper(\%tthis_song));
