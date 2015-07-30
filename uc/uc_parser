@@ -22,13 +22,22 @@ my %dances =
 print "starting the thing\n";
 my $date = `date +%s`;
 chomp $date;
-my $outfile = "uc_$date";
-print "outfile is \"$outfile\"\n";
 open FILE, "<new_uc" or die $!;
-open OUTPUT, ">$outfile" or die $!;
 my @lines = <FILE>;
+close FILE;
 my $line_no = 1;
 
+my %cats = 
+(
+   '1'=>'dance',
+   '2'=>'artist',
+   '3'=>'bpm',
+   '4'=>'dance',
+   '6'=>'length',
+   '5'=>'cpl_phrasing',
+   '5'=>'proam_phrasing',
+   '0'=>'year',
+);
 my %types = 
 (
    '1'=>'dance',
@@ -41,13 +50,6 @@ my %types =
 );
 my $song_idx = 1;
 
-my $name = "";
-my $artist = "";
-my $bpm = "";
-my $dance = "";
-my $cpl_length = "";
-my $proam_length = "";
-my $year = 0;
 my $proam_phrasing = "";
 my $cpl_phrasing = "";
 
@@ -55,54 +57,186 @@ my %songs = ();
 # hashes temporarily storing the values being read
 my %curr_song = (); 
 my %prev_song = ();
-
-
+my $curr_name = "";
+my $prev_name = "";
+my $is_same_song = 0;
 ##############################################################
 ####  Subroutines
 ##############################################################
+# prompt to stdout a yes/no question with a provided prompt
+# and return the answer to the caller (1 for yes, 0 for no)
 
-sub deep_copy( $ ) 
+
+sub dprint ($)
 {
-   
+   my $line = shift;
+   print "===============================\n";
+   print "\"$line\"\n";
+   print "===============================\n";
+}
+
+sub ordered_print()
+{
+   my $i = 1;
+   while( $i <= keys %songs) {
+      print "$i --> ";
+      print Dumper(\$songs{$i});
+      $i++
+   }
 }
 
 
+sub write_json() {
+   print "[";
+   my $i = 1;
+   while( $i <= keys %songs) {
+      print "{";
+      my $ref = $songs{$i};
+      foreach my $k(keys %$ref) {
+         my $v = $songs{$i}{$k};
+         if($v and $k){
+             print "\'$k\':\'$v\'";
+         }
+         if ($k ne 'year') {
+            print ",";
+         }
+      }
+      print "}\n";
+      $i++;
+   }
+  print "]\n";
+}
+sub write_ruby_seed() {
+# Song.create!(name: "Super Sad Song Title", artist: "Tracy Atkins", bpm: 95, dance: "nc", cpl_length: 2.14, proam_length: 1.7, cpl_phrasing: [2, 2, 3, 4, 5], proam_phrasing: [2, 2, 3, 4, 5])
+   my $i = 1;
+   while( $i <= keys %songs) {
+      my $str = "Song.create!(";
+      my $ref = $songs{$i};
+#      $str += "name: \"$songs{$i}{'name'}\",
+#               artist:
+#               bpm:
+#               dance:
+#               cp
+      foreach my $k(keys %types) {
+         my $v = $songs{$i}{$k};
+         if($v and $k){
+             print "\'$k\':\'$v\'";
+         }
+         if ($k ne 'year') {
+            print ",";
+         }
+      }
+      $i++;
+   }
+
+}
+
+sub yn_prompt( $ ) {
+    my $prompt = shift;
+    my $answer = "";
+    while( $answer !~ /^[yn]/i ) {
+        print "\n" . $prompt . " y/n \n";
+        print "> ";
+        $answer = <STDIN>;
+    }
+    if( $answer =~ /^y/i ) {
+        return 1;
+    }
+    return 0;
+}
+
+
+my $song_count = 0;
+my $dup_count = 0;
 foreach my $line (@lines)
 {
    chomp $line;
    my $idx = $line_no % 7;
    my $type = $types{$idx};
-   #print "type is \"$type\"\n";
-   if ($type =~ /phrasing/ )
-   {
-      if( $line =~ /^Couples (.*)$/ )
-      {
-         $cpl_phrasing = $1;
-         $curr_song{'cpl_phrasing'} = $cpl_phrasing;
+   if($line eq "") {
+   } else {
+      #dprint($type is $line);
+      if ($type =~ /phrasing/ ) {
+         #dprint("GOT PHRASING TYPE");
+         if( $line =~ /^Couples (.*)$/ ) {
+            $cpl_phrasing = $1;
+            $curr_song{'cpl_phrasing'} = $cpl_phrasing;
+         }
+         elsif( $line =~ /^ProAm (.*)$/ ) {
+            $proam_phrasing = $1;
+            $curr_song{'proam_phrasing'} = $proam_phrasing;
+         }
+         else {
+            die "$line_no: WHAT DATA TYPE IS THIS???\"$line\"\n";
+         }
       }
-      elsif( $line =~ /^ProAm (.*)$/ )
-      {
-         $proam_phrasing = $1;
-         $curr_song{'proam_phrasing'} = $proam_phrasing;
+      else {
+         $curr_song{$type} = $line;
+         if( $type =~ /name/ ) {
+            $curr_name = $line;
+            if($prev_name and ($curr_name eq $prev_name)) {
+               $is_same_song = 1;
+            }
+         }
+         # end of song info
+         if( $type =~ /year/ ) { 
+            $song_count++;
+            if($is_same_song)
+            {
+               $curr_song{'cpl_phrasing'} = $prev_song{'cpl_phrasing'};
+               $prev_song{'proam_phrasing'} = $curr_song{'proam_phrasing'};
+               $dup_count++;
+#               if( $prev_song{'name'} ne $curr_song{'name'} or
+#                  $prev_song{'dance'} ne $curr_song{'dance'} or
+#                  $prev_song{'artist'} ne $curr_song{'artist'} or
+#                  $prev_song{'bpm'} ne $curr_song{'bpm'} or
+#                  $prev_song{'cpl_phrasing'} ne $curr_song{'cpl_phrasing'} or
+#                  $prev_song{'proam_phrasing'} ne $curr_song{'proam_phrasing'} or
+#                  $prev_song{'year'} ne $curr_song{'year'} ) {
+#                  die "no match!\n";
+#               }
+               $is_same_song = 0;
+            } else {
+               $song_idx++;
+            }
+            $curr_song{'id'} = $song_idx;
+            #print "$curr_name - - > ";
+            #print Dumper(\%curr_song);
+            my %curr_song_copy = %curr_song;
+            $prev_name = $curr_name;
+            if (scalar keys %curr_song > 0) {
+               $songs{$song_idx} = \%curr_song_copy;
+            }
+            else {
+               print "nothing in current song!\n";
+               print "line_no = $line_no\n";
+               die  "line = $line\n";
+            }
+            #print "idx is $song_idx\n";
+            #print Dumper($songs{$song_idx});
+            %prev_song = %curr_song;
+            #%prev_song = %curr_song_copy;
+            %curr_song = ();
+         }
       }
-      else
-      {
-         die "$line_no: WHAT DATA TYPE IS THIS???\"$line\"\n";
-      }
+      $line_no++;
    }
-   else
-   {
-      $curr_song{$type} = $line;
-
-      if( $type =~ /year/ ) # end of song info
-      {
-         my $name = $curr_song('name'); # name is the key
-         $songs{$name} = \%curr_song
-         #TODO: if curr_song title = prev_song title:
-            # merge their phrasings
-      }
-   }
-   $line_no++;
 }
+close FILE;
 
-print Dumper(\%tthis_song));
+#print "line_no is $line_no\n";
+#my $should = $line_no/7;
+#print "song count should be: $should, and is $song_count.\n";
+#my $total = $dup_count + $song_idx;
+#print "looks like there are $dup_count duplicates, and $song_idx independent songs, adding up to $total.\n";
+
+write_json()
+#if(yn_prompt("Continue?")) {
+#print Dumper(\%songs);
+#}
+#if(yn_prompt("Continue with ordered print?")){
+#    ordered_print();
+#}
+#if(yn_prompt("Continue with json?")){
+#    write_json();
+#}
